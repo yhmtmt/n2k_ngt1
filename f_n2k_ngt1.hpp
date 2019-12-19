@@ -1,30 +1,29 @@
-// Copyright(c) 2018 Yohei Matsumoto, All right reserved. 
+// Copyright(c) 2018-2019 Yohei Matsumoto, All right reserved. 
 
-// f_ngt1.h is free software: you can redistribute it and/or modify
+// f_n2k_ngt1.hpp is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 
-// f_ngt1.h is distributed in the hope that it will be useful,
+// f_n2k_ngt1.hpp is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 
 // You should have received a copy of the GNU General Public License
-// along with f_ngt1.h.  If not, see <http://www.gnu.org/licenses/>. 
+// along with f_n2k_ngt1.hpp.  If not, see <http://www.gnu.org/licenses/>. 
  
-#ifndef F_NGT1_H
-#define F_NGT1_H
-#include "f_base.h"
-#include "../channel/ch_state.h"
+#ifndef F_N2K_NGT1_HPP
+#define F_N2K_NGT1_HPP
+#include "filter_base.hpp"
+#include "ch_state.hpp"
 
-#include "ngt1/actisense.h"
-#include "ngt1/analyzer.h"
+#include "canboat/actisense.h"
+#include "canboat/analyzer.h"
 
 class PgnFieldValues;
 
-
-class f_ngt1: public f_base
+class f_n2k_ngt1: public f_base
 {
  protected:
   char m_dname[1024];
@@ -164,8 +163,8 @@ bool printVarNumber(char * fieldName, Pgn * pgn, uint32_t refPgn, Field * field,
   ////////////////////////////////////////// pgn hanler
   
  public:
-  f_ngt1(const char * name);
-  ~f_ngt1();
+  f_n2k_ngt1(const char * name);
+  ~f_n2k_ngt1();
   virtual bool init_run();
   virtual void destroy_run();
   virtual bool proc();

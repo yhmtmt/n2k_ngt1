@@ -85,7 +85,7 @@ along with CANboat.  If not, see <http://www.gnu.org/licenses/>.
 
 typedef struct
 {
-  char * name;
+  const char * name;
   uint32_t size;     /* Size in bits. All fields are contiguous in message; use 'reserved' fields to fill in empty bits. */
 # define LEN_VARIABLE (0)
   double resolution; /* Either a positive real value or one of the following RES_ special values */
@@ -117,15 +117,15 @@ typedef struct
 # define MAX_RESOLUTION_LOOKUP 21
 
   bool hasSign; /* Is the value signed, e.g. has both positive and negative values? */
-  char * units; /* String containing the 'Dimension' (e.g. s, h, m/s, etc.) unless it starts with , in which
+  const char * units; /* String containing the 'Dimension' (e.g. s, h, m/s, etc.) unless it starts with , in which
                  * case it contains a set of lookup values.
                  */
-  char * description;
+  const char * description;
   int32_t offset; /* Only used for SAE J1939 values with sign; these are in Offset/Excess-K notation instead
                    * of two's complement as used by NMEA 2000.
                    * See http://en.wikipedia.org/wiki/Offset_binary
                    */
-  char * camelName; /* Filled by C, no need to set in initializers. */
+  const char * camelName; /* Filled by C, no need to set in initializers. */
 } Field;
 
 typedef struct
@@ -686,14 +686,14 @@ static const Resolution types[MAX_RESOLUTION_LOOKUP] =
 
 typedef struct
 {
-  char     * description;
+  const char     * description;
   uint32_t   pgn;
   bool       known;             /* Are we pretty sure we've got all fields with correct definitions? */
   uint32_t   size;              /* (Minimal) size of this PGN. Helps to determine fast/single frame and initial malloc */
   uint32_t   repeatingFields;   /* How many fields at the end repeat until the PGN is exhausted? */
   Field      fieldList[30];     /* Note fixed # of fields; increase if needed. RepeatingFields support means this is enough for now. */
   uint32_t   fieldCount;        /* Filled by C, no need to set in initializers. */
-  char     * camelDescription;  /* Filled by C, no need to set in initializers. */
+  const char     * camelDescription;  /* Filled by C, no need to set in initializers. */
   bool       unknownPgn;        /* true = this is a catch-all for unknown PGNs */
 } Pgn;
 

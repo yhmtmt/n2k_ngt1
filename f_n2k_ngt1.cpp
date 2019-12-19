@@ -1,66 +1,21 @@
 // Copyright(c) 2018 Yohei Matsumoto, All right reserved. 
 
-// f_ngt1.cpp is free software: you can redistribute it and/or modify
+// f_n2k_ngt1.cpp is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 
-// f_ngt1.cpp is distributed in the hope that it will be useful,
+// f_n2k_ngt1.cpp is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 
 // You should have received a copy of the GNU General Public License
-// along with f_ngt1.cpp. If not, see <http://www.gnu.org/licenses/>. 
- 
-#include "stdafx.h"
+// along with f_n2k_ngt1.cpp. If not, see <http://www.gnu.org/licenses/>. 
 
-#include <cmath>
-#include <cstring>
-#include <string>
-#include <iostream>
-#include <fstream>
-#include <vector>
-#include <list>
-#include <map>
-
-using namespace std;
-
-#include "../util/aws_stdlib.h"
-#include "../util/aws_thread.h"
-#include "../util/aws_serial.h"
-#include "../util/c_clock.h"
-
-#include <opencv2/opencv.hpp>
-using namespace cv;
-
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
-#include <sys/timeb.h>
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
-#include <fcntl.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <errno.h>
-#ifndef _WIN32
-#include <unistd.h>
-#endif
-#include <ctype.h>
-#include <stdarg.h>
-#include <stdint.h>
-
-
-#include "ngt1/common.h"
-#include "f_ngt1.h"
-
-
+#include <cstdarg>
+#include "canboat/common.h"
+#include "f_n2k_ngt1.hpp"
 
 PgnFieldValues::PgnFieldValues(const Pgn * _pgn):pgn(_pgn)
 {
@@ -76,11 +31,11 @@ PgnFieldValues::~PgnFieldValues()
 ////////////////////////////////////////////////////////////////////
 
 
-f_ngt1::Packet::Packet():lastFastPacket(0), size(0), allocSize(0), data(NULL)
+f_n2k_ngt1::Packet::Packet():lastFastPacket(0), size(0), allocSize(0), data(NULL)
 {
 }
 
-f_ngt1::Packet::~Packet()
+f_n2k_ngt1::Packet::~Packet()
 {
   if(data){
     free(data);
@@ -89,12 +44,12 @@ f_ngt1::Packet::~Packet()
 }
 
 
-f_ngt1::DevicePackets::DevicePackets():packetList(NULL)
+f_n2k_ngt1::DevicePackets::DevicePackets():packetList(NULL)
 {
   packetList = new Packet[pgnListSize];
 }
 
-f_ngt1::DevicePackets::~DevicePackets()
+f_n2k_ngt1::DevicePackets::~DevicePackets()
 {
   if(packetList){
     delete[] packetList;
@@ -102,7 +57,7 @@ f_ngt1::DevicePackets::~DevicePackets()
   }
 }
 
-unsigned char f_ngt1::NGT_STARTUP_SEQ[3] =
+unsigned char f_n2k_ngt1::NGT_STARTUP_SEQ[3] =
   { 
     0x11   /* msg byte 1, meaning ? */
     , 0x02   /* msg byte 2, meaning ? */
@@ -110,7 +65,7 @@ unsigned char f_ngt1::NGT_STARTUP_SEQ[3] =
   };
 
 
-f_ngt1::f_ngt1(const char * name):f_base(name), eng_state(NULL), eng_state2(NULL),  m_hserial(NULL_SERIAL), state(MSG_START), showRaw(false), showTxt(false), showData(false), showBytes(false), showJson(false), showSI(false), sep(NULL), onlyPgn(0), onlySrc(-1), clockSrc(-1), heapSize(0), showGeo(GEO_DD), mp(mbuf)
+f_n2k_ngt1::f_n2k_ngt1(const char * name):f_base(name), eng_state(NULL), eng_state2(NULL),  m_hserial(NULL_SERIAL), state(MSG_START), showRaw(false), showTxt(false), showData(false), showBytes(false), showJson(false), showSI(false), sep(NULL), onlyPgn(0), onlySrc(-1), clockSrc(-1), heapSize(0), showGeo(GEO_DD), mp(mbuf)
 {
   register_fpar("ch_eng_state", (ch_base**)&eng_state, typeid(ch_eng_state).name(), "Channel for engine state");
   register_fpar("ch_eng_state2", (ch_base**)&eng_state2, typeid(ch_eng_state).name(), "Channel for second engine state");
@@ -123,11 +78,11 @@ f_ngt1::f_ngt1(const char * name):f_base(name), eng_state(NULL), eng_state2(NULL
   register_fpar("ShowJson", &showJson, "Text formated as Json format.");
 }
 
-f_ngt1::~f_ngt1()
+f_n2k_ngt1::~f_n2k_ngt1()
 {
 }
 
-bool f_ngt1::init_run()
+bool f_n2k_ngt1::init_run()
 {
 #ifdef _WIN32
   m_hserial = open_serial(m_port, m_br);
@@ -152,7 +107,7 @@ bool f_ngt1::init_run()
 }
 
 
-void f_ngt1::destroy_run()
+void f_n2k_ngt1::destroy_run()
 {
   if(m_hserial != NULL_SERIAL)
     close_serial(m_hserial);
@@ -172,7 +127,7 @@ void f_ngt1::destroy_run()
   heapSize = 0;  
 }
 
-bool f_ngt1::proc()
+bool f_n2k_ngt1::proc()
 {
   readNGT1(m_hserial);
 
@@ -205,7 +160,7 @@ bool f_ngt1::proc()
   return true;
 }
 
-void f_ngt1::handle_pgn_eng_state(PgnFieldValues * pfv, ch_eng_state * ch, const unsigned char ieng)
+void f_n2k_ngt1::handle_pgn_eng_state(PgnFieldValues * pfv, ch_eng_state * ch, const unsigned char ieng)
 {
   if(ch){
     // 127488 engine parameters(rapid)
@@ -289,7 +244,7 @@ void f_ngt1::handle_pgn_eng_state(PgnFieldValues * pfv, ch_eng_state * ch, const
 }
 
 ///////////////////////////////////////////////////////////// from canboat
-int f_ngt1::readNGT1(AWS_SERIAL handle)
+int f_n2k_ngt1::readNGT1(AWS_SERIAL handle)
 {
   int r;
   unsigned char c;
@@ -307,7 +262,7 @@ int f_ngt1::readNGT1(AWS_SERIAL handle)
 }
 
 
-void  f_ngt1::readNGT1Byte(unsigned char c)
+void  f_n2k_ngt1::readNGT1Byte(unsigned char c)
 {
   if (state == MSG_ESCAPE)
   {
@@ -353,7 +308,7 @@ void  f_ngt1::readNGT1Byte(unsigned char c)
   }
 }
 
-void  f_ngt1::messageReceived(const unsigned char * msg, size_t msgLen)
+void  f_n2k_ngt1::messageReceived(const unsigned char * msg, size_t msgLen)
 {
   unsigned char command;
   unsigned char checksum = 0;
@@ -390,7 +345,7 @@ void  f_ngt1::messageReceived(const unsigned char * msg, size_t msgLen)
   }
 }
 
-void  f_ngt1::ngtMessageReceived(const unsigned char * msg, size_t msgLen)
+void  f_n2k_ngt1::ngtMessageReceived(const unsigned char * msg, size_t msgLen)
 {
   size_t i;
   char line[1000];
@@ -418,7 +373,7 @@ void  f_ngt1::ngtMessageReceived(const unsigned char * msg, size_t msgLen)
   }
 }
 
-void  f_ngt1::n2kMessageReceived(const unsigned char * msg, size_t msgLen)
+void  f_n2k_ngt1::n2kMessageReceived(const unsigned char * msg, size_t msgLen)
 {
   unsigned int prio, src, dst;
   unsigned int pgn;
@@ -493,7 +448,7 @@ void  f_ngt1::n2kMessageReceived(const unsigned char * msg, size_t msgLen)
 
 ////////////////////////////////////////////////////////// from canboat.analyze
 
-bool f_ngt1::printCanFormat(RawMessage * msg)
+bool f_n2k_ngt1::printCanFormat(RawMessage * msg)
 {
   size_t i;
   size_t unknownIndex = 0;
@@ -543,7 +498,7 @@ bool f_ngt1::printCanFormat(RawMessage * msg)
 }
 
 
-void f_ngt1::printPacket(size_t index, RawMessage * msg)
+void f_n2k_ngt1::printPacket(size_t index, RawMessage * msg)
 {
   size_t fastPacketIndex;
   size_t bucket;
@@ -656,7 +611,7 @@ void f_ngt1::printPacket(size_t index, RawMessage * msg)
   printPgn(msg, packet->data, packet->size);
 }
 
-bool f_ngt1::printPgn(RawMessage* msg, uint8_t *dataStart, int length)
+bool f_n2k_ngt1::printPgn(RawMessage* msg, uint8_t *dataStart, int length)
 {
   Pgn *pgn;
 
@@ -1131,7 +1086,7 @@ bool f_ngt1::printPgn(RawMessage* msg, uint8_t *dataStart, int length)
   return r;
 }
 
-void f_ngt1::printCanRaw(RawMessage * msg)
+void f_n2k_ngt1::printCanRaw(RawMessage * msg)
 {
   size_t i;
   FILE * f = stdout;
@@ -1158,7 +1113,7 @@ void f_ngt1::printCanRaw(RawMessage * msg)
 }
 
 
-const char * f_ngt1::getSep()
+const char * f_n2k_ngt1::getSep()
 {
   const char * s = sep;
 
@@ -1183,7 +1138,7 @@ const char * f_ngt1::getSep()
   return s;
 }
 
-void f_ngt1::mprintf(const char * format, ...)
+void f_n2k_ngt1::mprintf(const char * format, ...)
 {
   va_list ap;
   int remain;
@@ -1197,12 +1152,12 @@ void f_ngt1::mprintf(const char * format, ...)
 }
 
 
-void f_ngt1::mreset(void)
+void f_n2k_ngt1::mreset(void)
 {
   mp = mbuf;
 }
 
-void f_ngt1::mwrite(FILE * stream)
+void f_n2k_ngt1::mwrite(FILE * stream)
 {
   fwrite(mbuf, sizeof(char), mp - mbuf, stream);
   fflush(stream);
@@ -1210,7 +1165,7 @@ void f_ngt1::mwrite(FILE * stream)
 }
 
 
-bool f_ngt1::printLatLon(char * name, double resolution, uint8_t * data, size_t bytes, PgnFieldValues * pfv)
+bool f_n2k_ngt1::printLatLon(char * name, double resolution, uint8_t * data, size_t bytes, PgnFieldValues * pfv)
 {
   uint64_t absVal;
   int64_t value;
@@ -1319,7 +1274,7 @@ bool f_ngt1::printLatLon(char * name, double resolution, uint8_t * data, size_t 
 }
 
 
-bool f_ngt1::printDate(char * name, uint16_t d)
+bool f_n2k_ngt1::printDate(char * name, uint16_t d)
 {
   char buf[sizeof("2008.03.10") + 1];
   time_t t;
@@ -1354,7 +1309,7 @@ bool f_ngt1::printDate(char * name, uint16_t d)
   return true;
 }
 
-bool f_ngt1::printTime(char * name, uint32_t t)
+bool f_n2k_ngt1::printTime(char * name, uint32_t t)
 {
   uint32_t hours;
   uint32_t minutes;
@@ -1407,7 +1362,7 @@ bool f_ngt1::printTime(char * name, uint32_t t)
 }
 
 
-bool f_ngt1::printTemperature(char * name, uint32_t t, uint32_t bits,
+bool f_n2k_ngt1::printTemperature(char * name, uint32_t t, uint32_t bits,
 			      double resolution, PgnFieldValues * pfv)
 {
   double k = t * resolution;
@@ -1440,7 +1395,7 @@ bool f_ngt1::printTemperature(char * name, uint32_t t, uint32_t bits,
   return true;
 }
 
-bool f_ngt1::printPressure(char * name, uint32_t v, Field * field,
+bool f_n2k_ngt1::printPressure(char * name, uint32_t v, Field * field,
 			   PgnFieldValues * pfv)
 {
   int32_t pressure = 0;
@@ -1513,7 +1468,7 @@ bool f_ngt1::printPressure(char * name, uint32_t v, Field * field,
   return true;
 }
 
-void f_ngt1::print6BitASCIIChar(uint8_t b)
+void f_n2k_ngt1::print6BitASCIIChar(uint8_t b)
 {
   int c;
   if (b < 0x28)
@@ -1531,7 +1486,7 @@ void f_ngt1::print6BitASCIIChar(uint8_t b)
   putchar(c);
 }
 
-bool f_ngt1::print6BitASCIIText(char * name, uint8_t * data, size_t startBit, size_t bits)
+bool f_n2k_ngt1::print6BitASCIIText(char * name, uint8_t * data, size_t startBit, size_t bits)
 {
   uint8_t value = 0;
   uint8_t maxValue = 0;
@@ -1579,7 +1534,7 @@ bool f_ngt1::print6BitASCIIText(char * name, uint8_t * data, size_t startBit, si
 }
 
 
-bool f_ngt1::printHex(char * name, uint8_t * data, size_t startBit, size_t bits , PgnFieldValues * pfv)
+bool f_n2k_ngt1::printHex(char * name, uint8_t * data, size_t startBit, size_t bits , PgnFieldValues * pfv)
 {
   uint8_t value = 0;
   uint8_t maxValue = 0;
@@ -1639,7 +1594,7 @@ bool f_ngt1::printHex(char * name, uint8_t * data, size_t startBit, size_t bits 
 }
 
 
-bool f_ngt1::printDecimal(char * name, uint8_t * data, size_t startBit, size_t bits, PgnFieldValues * pfv)
+bool f_n2k_ngt1::printDecimal(char * name, uint8_t * data, size_t startBit, size_t bits, PgnFieldValues * pfv)
 {
   uint8_t value = 0;
   uint8_t maxValue = 0;
@@ -1707,7 +1662,7 @@ bool f_ngt1::printDecimal(char * name, uint8_t * data, size_t startBit, size_t b
   return true;
 }
 
-bool f_ngt1::printVarNumber(char * fieldName, Pgn * pgn, uint32_t refPgn, Field * field, uint8_t * data, size_t startBit, size_t * bits, PgnFieldValues * pfv)
+bool f_n2k_ngt1::printVarNumber(char * fieldName, Pgn * pgn, uint32_t refPgn, Field * field, uint8_t * data, size_t startBit, size_t * bits, PgnFieldValues * pfv)
 {
   Field * refField;
   size_t size, bytes;
@@ -1740,7 +1695,7 @@ bool f_ngt1::printVarNumber(char * fieldName, Pgn * pgn, uint32_t refPgn, Field 
   return false;
 }
 
-bool f_ngt1::printNumber(char * fieldName, Field * field, uint8_t * data, size_t startBit, size_t bits, PgnFieldValues * pfv)
+bool f_n2k_ngt1::printNumber(char * fieldName, Field * field, uint8_t * data, size_t startBit, size_t bits, PgnFieldValues * pfv)
 {
   bool ret = false;
   int64_t value;
@@ -1787,7 +1742,7 @@ bool f_ngt1::printNumber(char * fieldName, Field * field, uint8_t * data, size_t
     if (field->units && field->units[0] == '=')
     {
       char lookfor[20];
-      char * s;
+      const char * s;
 
       sprintf(lookfor, "=%" PRId64 , value);
       if (strcmp(lookfor, field->units) != 0)
@@ -1814,7 +1769,7 @@ bool f_ngt1::printNumber(char * fieldName, Field * field, uint8_t * data, size_t
     else if (field->resolution == RES_LOOKUP && field->units)
     {
       char lookfor[20];
-      char * s, * e;
+      const char * s, * e;
 
       sprintf(lookfor, ",%" PRId64 "=", value);
       s = strstr(field->units, lookfor);
@@ -1854,7 +1809,7 @@ bool f_ngt1::printNumber(char * fieldName, Field * field, uint8_t * data, size_t
     else if (field->resolution == RES_BITFIELD && field->units)
     {
       char lookfor[20];
-      char * s, * e;
+      const char * s, * e;
       unsigned int bit;
       uint64_t bitValue;
       char sep;
@@ -2083,7 +2038,7 @@ bool f_ngt1::printNumber(char * fieldName, Field * field, uint8_t * data, size_t
 }
 
 
-void f_ngt1::print_ascii_json_escaped(uint8_t *data, int len)
+void f_n2k_ngt1::print_ascii_json_escaped(uint8_t *data, int len)
 {
   int c;
   int k;
@@ -2137,7 +2092,7 @@ void f_ngt1::print_ascii_json_escaped(uint8_t *data, int len)
   }
 }
 
-void f_ngt1::setSystemClock(uint16_t currentDate, uint32_t currentTime)
+void f_n2k_ngt1::setSystemClock(uint16_t currentDate, uint32_t currentTime)
 {
 
 #ifndef SKIP_SETSYSTEMCLOCK
@@ -2231,7 +2186,7 @@ void f_ngt1::setSystemClock(uint16_t currentDate, uint32_t currentTime)
 #endif
 }
 
-void f_ngt1::fillManufacturers(void)
+void f_n2k_ngt1::fillManufacturers(void)
 {
   size_t i;
 
@@ -2244,7 +2199,7 @@ void f_ngt1::fillManufacturers(void)
   }
 }
 
-void f_ngt1::fillFieldCounts(void)
+void f_n2k_ngt1::fillFieldCounts(void)
 {
   size_t i, j;
 
@@ -2265,7 +2220,7 @@ void f_ngt1::fillFieldCounts(void)
   }
 }
 
-void f_ngt1::writeMessage(AWS_SERIAL handle, unsigned char command, const unsigned char * cmd,
+void f_n2k_ngt1::writeMessage(AWS_SERIAL handle, unsigned char command, const unsigned char * cmd,
 			  const size_t len)
 {
   unsigned char bst[255];
