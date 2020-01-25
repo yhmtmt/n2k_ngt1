@@ -16,6 +16,7 @@
 #include <cstdarg>
 #include "canboat/common.h"
 #include "f_n2k_ngt1.hpp"
+DEFINE_FILTER(f_n2k_ngt1)
 
 PgnFieldValues::PgnFieldValues(const Pgn * _pgn):pgn(_pgn)
 {
