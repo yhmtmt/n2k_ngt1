@@ -1,4 +1,4 @@
-// Copyright(c) 2018 Yohei Matsumoto, All right reserved. 
+// Copyright(c) 2018-2020 Yohei Matsumoto, All right reserved. 
 
 // f_n2k_ngt1.cpp is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -16,8 +16,6 @@
 #include <cstdarg>
 #include "canboat/common.h"
 #include "f_n2k_ngt1.hpp"
-DEFINE_FILTER(f_n2k_ngt1)
-
 DEFINE_FILTER(f_n2k_ngt1)
 
 PgnFieldValues::PgnFieldValues(const Pgn * _pgn):pgn(_pgn)
