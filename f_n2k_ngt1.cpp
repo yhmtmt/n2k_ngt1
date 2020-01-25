@@ -18,6 +18,8 @@
 #include "f_n2k_ngt1.hpp"
 DEFINE_FILTER(f_n2k_ngt1)
 
+DEFINE_FILTER(f_n2k_ngt1)
+
 PgnFieldValues::PgnFieldValues(const Pgn * _pgn):pgn(_pgn)
 {
 }
