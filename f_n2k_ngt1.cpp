@@ -240,6 +240,10 @@ void f_n2k_ngt1::handle_pgn_eng_state(PgnFieldValues * pfv, ch_eng_state * ch, c
 		   (float)((double)*pfv->get_vptr<int64_t>(3) * 0.1),
 		   (float)((double)*pfv->get_vptr<int64_t>(4) * 0.1));			      if(m_verb)									  cout << 127497 << " fuel used:" << (int)(*pfv->get_vptr<int64_t>(1)) << " Fuel Rate:" << (float)((double)*pfv->get_vptr<int64_t>(2) * 0.1) << endl;
       break;
+    default:
+      if(m_verb){
+	spdlog::info("PGN{} is not handled yet.", pfv->getPgn());
+      }
     }
   }
 }
