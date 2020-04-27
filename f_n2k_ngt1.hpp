@@ -1,4 +1,4 @@
-// Copyright(c) 2018-2019 Yohei Matsumoto, All right reserved. 
+// Copyright(c) 2018-2020 Yohei Matsumoto, All right reserved. 
 
 // f_n2k_ngt1.hpp is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -17,7 +17,7 @@
 #define F_N2K_NGT1_HPP
 #include "filter_base.hpp"
 #include "ch_state.hpp"
-
+#include "ch_nmea.hpp"
 #include "canboat/actisense.h"
 #include "canboat/analyzer.h"
 
@@ -33,7 +33,10 @@ class f_n2k_ngt1: public f_base
 
   bool m_verb;
 
-  ch_eng_state * eng_state, * eng_state2;
+  ch_eng_state * eng_state;
+  
+  ch_n2k_data * n2k_data;
+  flatbuffers::FlatBufferBuilder builder;
   
   //<-- these functions are from canboat.actisense-serial
   enum MSG_State
@@ -150,7 +153,8 @@ bool printVarNumber(char * fieldName, Pgn * pgn, uint32_t refPgn, Field * field,
   void mreset(void);
   void mwrite(FILE * stream);
   
-  void writeMessage(AWS_SERIAL handle, unsigned char command, const unsigned char * cmd,
+  void writeMessage(AWS_SERIAL handle, unsigned char command,
+		    const unsigned char * cmd,
 		    const size_t len);
 
   // these functions are from canboat.analyze -->

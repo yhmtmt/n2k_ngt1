@@ -15,6 +15,7 @@
 
 #include <cstdarg>
 #include "canboat/common.h"
+
 #include "f_n2k_ngt1.hpp"
 DEFINE_FILTER(f_n2k_ngt1)
 
@@ -66,10 +67,25 @@ unsigned char f_n2k_ngt1::NGT_STARTUP_SEQ[3] =
   };
 
 
-f_n2k_ngt1::f_n2k_ngt1(const char * name):f_base(name), eng_state(NULL), eng_state2(NULL),  m_hserial(NULL_SERIAL), state(MSG_START), showRaw(false), showTxt(false), showData(false), showBytes(false), showJson(false), showSI(false), sep(NULL), onlyPgn(0), onlySrc(-1), clockSrc(-1), heapSize(0), showGeo(GEO_DD), mp(mbuf)
+f_n2k_ngt1::f_n2k_ngt1(const char * name):f_base(name),
+					  eng_state(NULL),
+					  n2k_data(nullptr),
+					  builder(256),
+					  m_hserial(NULL_SERIAL),
+					  state(MSG_START),
+					  showRaw(false),
+					  showTxt(false),
+					  showData(false), showBytes(false),
+					  showJson(false), showSI(false),
+					  sep(NULL), onlyPgn(0), onlySrc(-1),
+					  clockSrc(-1), heapSize(0),
+					  showGeo(GEO_DD), mp(mbuf)
 {
-  register_fpar("ch_eng_state", (ch_base**)&eng_state, typeid(ch_eng_state).name(), "Channel for engine state");
-  register_fpar("ch_eng_state2", (ch_base**)&eng_state2, typeid(ch_eng_state).name(), "Channel for second engine state");
+  register_fpar("ch_eng_state", (ch_base**)&eng_state,
+		typeid(ch_eng_state).name(), "Channel for engine state");
+
+  register_fpar("ch_n2k_data", (ch_base**)&n2k_data, "Channel for n2k data.");
+  
   register_fpar("dev", m_dname, 1024, "Device file path of the serial port.");
   register_fpar("port", &m_port, "Port number of the serial port. (only for windows)");
 
@@ -139,21 +155,7 @@ bool f_n2k_ngt1::proc()
     if(pfv){
      
       handle_pgn_eng_state(pfv, eng_state, 0);
-      handle_pgn_eng_state(pfv, eng_state2, 1);
 
-      /*
-      if(m_verb){
-	cout << "PGN " << pfv->getPgn() << endl;
-	for(int ifv = 0; ifv < pfv->getNumFields(); ifv++){
-	  const FieldValueBase * pfvb = pfv->get(ifv);
-	  cout << "Field[" << ifv << "]:";
-	  pfvb->print();
-	  cout << " type=";
-	  pfvb->print_type();
-	  cout << endl;
-	}
-      }
-      */
       delete *itr;
     }
     itr = pgn_queue.erase(itr);
@@ -161,7 +163,8 @@ bool f_n2k_ngt1::proc()
   return true;
 }
 
-void f_n2k_ngt1::handle_pgn_eng_state(PgnFieldValues * pfv, ch_eng_state * ch, const unsigned char ieng)
+void f_n2k_ngt1::handle_pgn_eng_state(PgnFieldValues * pfv, ch_eng_state * ch,
+				      const unsigned char ieng)
 {
   if(ch){
     // 127488 engine parameters(rapid)
@@ -194,16 +197,57 @@ void f_n2k_ngt1::handle_pgn_eng_state(PgnFieldValues * pfv, ch_eng_state * ch, c
     case 127488: // rapid engine parameter
       if(*pfv->get_vptr<int64_t>(0) != ieng)
 	break;
+      if(n2k_data){
+	builder.Clear();
+	auto payload =
+	  builder.CreateStruct(NMEA2000::EngineParametersRapidUpdate((NMEA2000::EngineInstance)*pfv->get_vptr<int64_t>(0), (unsigned short)*pfv->get_vptr<int64_t>(1), (unsigned short)*pfv->get_vptr<int64_t>(2), (char)*pfv->get_vptr<int64_t>(3)));
+	auto data = CreateData(builder,
+			       get_time(),
+			       NMEA2000::Payload_EngineParametersRapidUpdate,
+			       payload.Union());
+	builder.Finish(data);
+	n2k_data->push(builder.GetBufferPointer(), builder.GetSize());
+      }
+      
       ch->set_rapid(get_time(),
 		    (float)((double)*pfv->get_vptr<int64_t>(1) * 0.25),
 		    (char)(*pfv->get_vptr<int64_t>(3)));
+
       if(m_verb)
-	cout << 127488 << " rpm:" << (float)((double)*pfv->get_vptr<int64_t>(1) * 0.25) << " trim:" << (*pfv->get_vptr<int64_t>(3)) << endl;
+	cout << 127488 << " rpm:"
+	     << (float)((double)*pfv->get_vptr<int64_t>(1) * 0.25)
+	     << " trim:" << (*pfv->get_vptr<int64_t>(3)) << endl;
       break;
     case 127489:
       if(*pfv->get_vptr<int64_t>(0) != ieng)
 	break;
       {
+	if(n2k_data){
+	  builder.Clear();
+	  auto payload =
+	    builder.CreateStruct(NMEA2000::EngineParametersDynamic((NMEA2000::EngineInstance)*pfv->get_vptr<int64_t>(0),
+								   (unsigned short)*pfv->get_vptr<int64_t>(1), /* oil pressure */
+								   (unsigned short)*pfv->get_vptr<int64_t>(2), /* oil temperature */
+								   (unsigned short)*pfv->get_vptr<int64_t>(3), /* temperature */
+								   (unsigned short)*pfv->get_vptr<int64_t>(4), /* alternatorPotential */
+								   (short) *pfv->get_vptr<int64_t>(5), /* fuel rate */
+								   (unsigned int) *pfv->get_vptr<int64_t>(6), /* total engine hours */
+								   (unsigned short) *pfv->get_vptr<int64_t>(7), /* coolant pressure */
+								   (unsigned short) *pfv->get_vptr<int64_t>(8), /* fuel pressure */
+								   (NMEA2000::EngineStatus1) *pfv->get_vptr<int64_t>(9), /* engine status 1 */
+								   (NMEA2000::EngineStatus2) *pfv->get_vptr<int64_t>(10), /* engine status 2 */
+								   (char) *pfv->get_vptr<int64_t>(11), /* percent engine load */
+								   (char) *pfv->get_vptr<int64_t>(12) /* percent engine torque */
+								   
+								   ));
+	  auto data = CreateData(builder,
+				 get_time(),
+				 NMEA2000::Payload_EngineParametersDynamic,
+				 payload.Union());
+	  builder.Finish(data);
+	  n2k_data->push(builder.GetBufferPointer(), builder.GetSize());
+	}
+	
 	int32_t poil=(int)(*pfv->get_vptr<int32_t>(1));
 	float toil = (float)(*pfv->get_vptr<double>(2));
 	float temp = (float)(*pfv->get_vptr<double>(3));
@@ -212,20 +256,39 @@ void f_n2k_ngt1::handle_pgn_eng_state(PgnFieldValues * pfv, ch_eng_state * ch, c
 	unsigned int teng = (unsigned int)(*pfv->get_vptr<int64_t>(6));
 	int pclnt = (int)(*pfv->get_vptr<int32_t>(7));
 	int pfl = (int)(*pfv->get_vptr<int64_t>(8));
-	StatEng1 stat1 = (StatEng1)(*pfv->get_vptr<int64_t>(9));
-	StatEng2 stat2 = (StatEng2)(*pfv->get_vptr<int64_t>(10));
+	NMEA2000::EngineStatus1 stat1 = (NMEA2000::EngineStatus1)(*pfv->get_vptr<int64_t>(9));
+	NMEA2000::EngineStatus2 stat2 = (NMEA2000::EngineStatus2)(*pfv->get_vptr<int64_t>(10));
 	unsigned char ld = (unsigned char)(*pfv->get_vptr<int64_t>(11));
 	unsigned char tq = (unsigned char)(*pfv->get_vptr<int64_t>(12));
-	ch->set_dynamic(get_time(), poil, toil, temp, valt, frate, teng, pclnt, pfl, stat1, stat2, ld, tq);
+	ch->set_dynamic(get_time(), poil, toil, temp, valt,
+			frate, teng, pclnt, pfl, stat1, stat2, ld, tq);
 	if(m_verb)
-	  cout << 127489 << " temp:" << temp << " valt:" << valt << " poil:" << poil << endl; 
+	  cout << 127489 << " temp:" << temp << " valt:" << valt
+	       << " poil:" << poil << endl; 
       }
       break;
     case 127493:
       if(*pfv->get_vptr<int64_t>(0) != ieng)
 	break;
+      if(n2k_data){
+	builder.Clear();
+	auto payload =
+	  builder.CreateStruct(NMEA2000::TransmissionParametersDynamic((NMEA2000::EngineInstance)*pfv->get_vptr<int64_t>(0),
+								       (NMEA2000::GearStatus)*pfv->get_vptr<int64_t>(1),
+								       (unsigned short)*pfv->get_vptr<int64_t>(2),
+								       (unsigned char)*pfv->get_vptr<int64_t>(3),
+								       (unsigned char)*pfv->get_vptr<int64_t>(4)
+								       ));
+	auto data = CreateData(builder,
+			       get_time(),
+			       NMEA2000::Payload_TransmissionParametersDynamic,
+			       payload.Union());
+	builder.Finish(data);
+	n2k_data->push(builder.GetBufferPointer(), builder.GetSize());
+      }
+      
       ch->set_tran(get_time(),
-		   (StatGear)(*pfv->get_vptr<int64_t>(1)),
+		   (NMEA2000::GearStatus)(*pfv->get_vptr<int64_t>(1)),
 		   (int)(*pfv->get_vptr<int64_t>(3)),
 		   (float)(*pfv->get_vptr<double>(4)));
       if(m_verb)
@@ -234,11 +297,28 @@ void f_n2k_ngt1::handle_pgn_eng_state(PgnFieldValues * pfv, ch_eng_state * ch, c
     case 127497:
       if(*pfv->get_vptr<int64_t>(0) != ieng)
 	break;
+      if(n2k_data){
+	builder.Clear();
+	auto payload =
+	  builder.CreateStruct(NMEA2000::TripParametersEngine((NMEA2000::EngineInstance)*pfv->get_vptr<int64_t>(0),
+							      (unsigned short)*pfv->get_vptr<int64_t>(1),
+							      (short)*pfv->get_vptr<int64_t>(2),
+							      (short)*pfv->get_vptr<int64_t>(3),
+							      (short)*pfv->get_vptr<int64_t>(4)
+							      ));
+	auto data = CreateData(builder,
+			       get_time(),
+			       NMEA2000::Payload_TripParametersEngine,
+			       payload.Union());
+	builder.Finish(data);
+	n2k_data->push(builder.GetBufferPointer(), builder.GetSize());
+      }
+      
       ch->set_trip(get_time(),
 		   (int)(*pfv->get_vptr<int64_t>(1)),
 		   (float)((double)*pfv->get_vptr<int64_t>(2) * 0.1),
 		   (float)((double)*pfv->get_vptr<int64_t>(3) * 0.1),
-		   (float)((double)*pfv->get_vptr<int64_t>(4) * 0.1));			      if(m_verb)									  cout << 127497 << " fuel used:" << (int)(*pfv->get_vptr<int64_t>(1)) << " Fuel Rate:" << (float)((double)*pfv->get_vptr<int64_t>(2) * 0.1) << endl;
+		   (float)((double)*pfv->get_vptr<int64_t>(4) * 0.1));			      if(m_verb)									  cout << 127497 << " fuel used:"<< (int)(*pfv->get_vptr<int64_t>(1)) << " Fuel Rate:" << (float)((double)*pfv->get_vptr<int64_t>(2) * 0.1) << endl;
       break;
     default:
       if(m_verb){
