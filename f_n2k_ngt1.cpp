@@ -84,7 +84,8 @@ f_n2k_ngt1::f_n2k_ngt1(const char * name):f_base(name),
   register_fpar("ch_eng_state", (ch_base**)&eng_state,
 		typeid(ch_eng_state).name(), "Channel for engine state");
 
-  register_fpar("ch_n2k_data", (ch_base**)&n2k_data, "Channel for n2k data.");
+  register_fpar("ch_n2k_data", (ch_base**)&n2k_data,
+		typeid(ch_n2k_data).name(), "Channel for n2k data.");
   
   register_fpar("dev", m_dname, 1024, "Device file path of the serial port.");
   register_fpar("port", &m_port, "Port number of the serial port. (only for windows)");
