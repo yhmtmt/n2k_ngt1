@@ -32,8 +32,6 @@ class f_n2k_ngt1: public f_base
   AWS_SERIAL m_hserial;
 
   bool m_verb;
-
-  ch_eng_state * eng_state;
   
   ch_n2k_data * n2k_data;
   flatbuffers::FlatBufferBuilder builder;
@@ -161,8 +159,7 @@ bool printVarNumber(char * fieldName, Pgn * pgn, uint32_t refPgn, Field * field,
 
   list<PgnFieldValues*> pgn_queue;
 
-  void handle_pgn_eng_state(PgnFieldValues * pfv,
-			    ch_eng_state * ch, const unsigned char ieng = 0);
+  void handle_pgn_eng_state(PgnFieldValues * pfv, const unsigned char ieng = 0);
   
   ////////////////////////////////////////// pgn hanler
   
