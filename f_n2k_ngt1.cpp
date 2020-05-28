@@ -195,8 +195,7 @@ void f_n2k_ngt1::handle_pgn_eng_state(PgnFieldValues * pfv,
       break;
     if(n2k_data){
       builder.Clear();
-      auto payload =
-	builder.CreateStruct(NMEA2000::EngineParametersRapidUpdate((NMEA2000::EngineInstance)*pfv->get_vptr<int64_t>(0), (unsigned short)*pfv->get_vptr<int64_t>(1), (unsigned short)*pfv->get_vptr<int64_t>(2), (char)*pfv->get_vptr<int64_t>(3)));
+      auto payload = NMEA2000::CreateEngineParametersRapidUpdate(builder, (NMEA2000::EngineInstance)*pfv->get_vptr<int64_t>(0), (unsigned short)*pfv->get_vptr<int64_t>(1), (unsigned short)*pfv->get_vptr<int64_t>(2), (char)*pfv->get_vptr<int64_t>(3));
       auto data = CreateData(builder,
 			     get_time(),
 			     NMEA2000::Payload_EngineParametersRapidUpdate,
@@ -218,7 +217,7 @@ void f_n2k_ngt1::handle_pgn_eng_state(PgnFieldValues * pfv,
       if(n2k_data){
 	builder.Clear();
 	auto payload =
-	  builder.CreateStruct(NMEA2000::EngineParametersDynamic((NMEA2000::EngineInstance)*pfv->get_vptr<int64_t>(0),
+	  NMEA2000::CreateEngineParametersDynamic(builder, (NMEA2000::EngineInstance)*pfv->get_vptr<int64_t>(0),
 								 (unsigned short)*pfv->get_vptr<int64_t>(1), /* oil pressure */
 								 (unsigned short)*pfv->get_vptr<int64_t>(2), /* oil temperature */
 								 (unsigned short)*pfv->get_vptr<int64_t>(3), /* temperature */
@@ -232,7 +231,7 @@ void f_n2k_ngt1::handle_pgn_eng_state(PgnFieldValues * pfv,
 								 (char) *pfv->get_vptr<int64_t>(11), /* percent engine load */
 								 (char) *pfv->get_vptr<int64_t>(12) /* percent engine torque */
 								 
-								 ));
+								 );
 	auto data = CreateData(builder,
 			       get_time(),
 			       NMEA2000::Payload_EngineParametersDynamic,
@@ -249,12 +248,12 @@ void f_n2k_ngt1::handle_pgn_eng_state(PgnFieldValues * pfv,
     if(n2k_data){
       builder.Clear();
       auto payload =
-	builder.CreateStruct(NMEA2000::TransmissionParametersDynamic((NMEA2000::EngineInstance)*pfv->get_vptr<int64_t>(0),
+	NMEA2000::CreateTransmissionParametersDynamic(builder, (NMEA2000::EngineInstance)*pfv->get_vptr<int64_t>(0),
 								     (NMEA2000::GearStatus)*pfv->get_vptr<int64_t>(1),
 								     (unsigned short)*pfv->get_vptr<int64_t>(2),
 								     (unsigned char)*pfv->get_vptr<int64_t>(3),
 								     (unsigned char)*pfv->get_vptr<int64_t>(4)
-								     ));
+								     );
       auto data = CreateData(builder,
 			     get_time(),
 			     NMEA2000::Payload_TransmissionParametersDynamic,
@@ -270,13 +269,13 @@ void f_n2k_ngt1::handle_pgn_eng_state(PgnFieldValues * pfv,
     if(n2k_data){
       builder.Clear();
       auto payload =
-	builder.CreateStruct(NMEA2000::TripParametersEngine((NMEA2000::EngineInstance)*pfv->get_vptr<int64_t>(0),
-							    (unsigned short)*pfv->get_vptr<int64_t>(1),
-							    (short)*pfv->get_vptr<int64_t>(2),
-							    (short)*pfv->get_vptr<int64_t>(3),
-							    (short)*pfv->get_vptr<int64_t>(4)
-							    ));
-      auto data = CreateData(builder,
+	NMEA2000::CreateTripParametersEngine(builder, (NMEA2000::EngineInstance)*pfv->get_vptr<int64_t>(0),
+					     (unsigned short)*pfv->get_vptr<int64_t>(1),
+					     (short)*pfv->get_vptr<int64_t>(2),
+					     (short)*pfv->get_vptr<int64_t>(3),
+					     (short)*pfv->get_vptr<int64_t>(4)
+					     );
+auto data = CreateData(builder,
 			     get_time(),
 			     NMEA2000::Payload_TripParametersEngine,
 			     payload.Union());
