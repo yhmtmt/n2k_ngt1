@@ -221,8 +221,8 @@ void f_n2k_ngt1::handle_pgn_eng_state(PgnFieldValues * pfv,
 	auto payload =
 	  NMEA2000::CreateEngineParametersDynamic(builder, (NMEA2000::EngineInstance)*pfv->get_vptr<int64_t>(0),
 						  (unsigned short)*pfv->get_vptr<int32_t>(1), /* oil pressure */
-						  (unsigned short)*pfv->get_vptr<float64_t>(2), /* oil temperature */
-								 (unsigned short)*pfv->get_vptr<float64_t>(3), /* temperature */
+						  (unsigned short)*pfv->get_vptr<double>(2), /* oil temperature */
+								 (unsigned short)*pfv->get_vptr<double>(3), /* temperature */
 								 (unsigned short)*pfv->get_vptr<int64_t>(4), /* alternatorPotential */
 								 (short) *pfv->get_vptr<int64_t>(5), /* fuel rate */
 								 (unsigned int) *pfv->get_vptr<int64_t>(6), /* total engine hours */
